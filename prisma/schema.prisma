@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN @map("admin")
+  USER  @map("user")
+
+  @@map("user_role")
+}
+
+model User {
+  id       Int      @id @unique @default(autoincrement()) @db.Integer
+  userName String   @unique @map("user_name") @db.VarChar(50)
+  password String   @db.VarChar(50)
+  nickname String   @db.VarChar(50)
+  role     UserRole @default(USER)
+  balance  Decimal  @default(0) @db.Money
+  basket   Basket?
+  Review   Review[]
+
+  @@map("user")
+}
+
+model Basket {
+  id         Int       @id @unique @default(autoincrement()) @db.Integer
+  products   Product[]
+  totalPrice Decimal   @default(0) @map("total_price") @db.Money
+  userId     Int       @unique @map("user_id")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("basket")
+}
+
+model Product {
+  id            Int           @id @unique @default(autoincrement()) @db.Integer
+  name          String        @db.VarChar(100)
+  price         Decimal       @default(0) @db.Money
+  image         String?       @db.Text
+  features      Json          @db.JsonB
+  productInfoId Int           @unique @map("product_id")
+  basket        Basket?       @relation(fields: [basketId], references: [id])
+  basketId      Int?          @map("basket_id") @db.Integer
+  ProductInfo   ProductInfo[]
+
+  @@map("product")
+}
+
+model ProductInfo {
+  id          Int      @id @unique @default(autoincrement()) @db.Integer
+  description String?  @db.Text
+  product     Product? @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  productId   Int?     @db.Integer
+
+  @@map("product_info")
+}
+
+model Review {
+  id         Int      @id @unique @default(autoincrement()) @db.Integer
+  message    String   @db.Text
+  estimation Int      @default(0) @db.SmallInt
+  dateTime   DateTime @default(now()) @map("date_time") @db.Timestamp()
+  userId     Int?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("review")
+}
